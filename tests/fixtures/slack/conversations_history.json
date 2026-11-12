@@ -1,0 +1,40 @@
+{
+  "ok": true,
+  "messages": [
+    {
+      "type": "message",
+      "user": "U0TED",
+      "text": "have a look at the deploy <@U0ME>",
+      "ts": "1723640400.001200",
+      "blocks": [{ "type": "rich_text", "elements": [] }],
+      "reactions": [
+        { "name": "eyes", "users": ["U0ME"], "count": 1 },
+        { "name": "tada", "users": ["U0ME", "U0ANN"], "count": 2 }
+      ]
+    },
+    {
+      "type": "message",
+      "user": "U0ME",
+      "text": "on it",
+      "ts": "1723640460.000100",
+      "thread_ts": "1723640400.001200",
+      "edited": { "user": "U0ME", "ts": "1723640500.000000" }
+    },
+    {
+      "type": "message",
+      "subtype": "channel_join",
+      "user": "U0ANN",
+      "text": "<@U0ANN> has joined the channel",
+      "ts": "1723640600.000200"
+    },
+    {
+      "type": "message",
+      "user": "U0ANN",
+      "text": "here is the log",
+      "ts": "1723640700.000300",
+      "files": [{ "id": "F1", "name": "deploy.log", "url_private": "https://files.slack.com/x" }]
+    }
+  ],
+  "has_more": true,
+  "response_metadata": { "next_cursor": "bmV4dF90czoxNzIzNjQwNzAw" }
+}

@@ -1,0 +1,37 @@
+name: tag
+
+# Bump `version` under [workspace.package], merge to main, and this tags it and starts
+# image.yml, which builds the image and publishes it to ghcr. Run by hand with
+# `gh workflow run tag.yml --ref main` to tag the current workspace version instead.
+#
+# It is a no-op if the tag already exists, so a Cargo.toml edit that does not touch the
+# version costs nothing.
+on:
+  push:
+    branches: [main]
+    paths: [Cargo.toml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # `[workspace.package] version`, read within that section rather than as the
+          # first `version =` line in the file: a pinned dependency above it would win.
+          tag=v$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" > /dev/null; then
+            echo "$tag already exists"
+            exit 0
+          fi
+          gh api "repos/${{ github.repository }}/git/refs" -f ref="refs/tags/$tag" -f sha="$GITHUB_SHA"
+          # A tag made with GITHUB_TOKEN fires no push event, so start the build directly. It runs
+          # on main, which is also the only ref image.yml accepts.
+          gh workflow run image.yml --ref main -f tag="$tag"

@@ -1,0 +1,36 @@
+# The Slack half of the ingester: fetching and parsing, with no database in reach.
+#
+# Nothing in `slack-core` or `slack-mcp` may depend on this crate, so the MCP process
+# cannot hold a Slack credential even by accident.
+[package]
+name = "slack-client"
+description = "The Slack Web API over a browser session credential"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+slack-core.workspace = true
+chrono.workspace = true
+# Already in the tree through sqlx; `encode_cookie_value` has to match Python's
+# `quote(value, safe="")` exactly, and this is the crate that defines that set.
+percent-encoding = "2.3.2"
+# `rustls-tls-webpki-roots`, not `rustls-tls`: the default drags in a second crypto
+# backend (aws-lc-rs, which needs a C toolchain) beside the ring that sqlx already
+# links, and bundled roots mean the container needs no CA store of its own.
+reqwest = { version = "0.12.28", default-features = false, features = [
+    "rustls-tls-webpki-roots",
+    "http2",
+] }
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["time", "sync"] }
+tracing.workspace = true
+
+[dev-dependencies]
+# `test-util` is what makes the token-bucket tests exact: time is virtual, so nothing
+# sleeps for real. The fake Slack is a plain TCP listener, so `net` and `io-util` are
+# all it needs.
+tokio = { workspace = true, features = ["test-util", "net", "io-util"] }

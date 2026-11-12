@@ -1,0 +1,34 @@
+version: 2
+
+# Weekly, grouped, never merged by itself: each batch arrives as one pull request that the
+# ci workflow tests. Actions and base images are grouped apart from the crates so a failing
+# dependency bump does not hold back the rest.
+#
+# `rmcp` is pinned to an exact version in `crates/mcp/Cargo.toml` with the reason in a
+# comment there: it went v1 -> v2 -> v3 inside a year and the streamable-HTTP server API
+# moved with it. Expect a recurring bump proposal for it that should keep being declined
+# until someone reads that transport's changelog.
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      crates:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /deploy
+    schedule:
+      interval: weekly
+    groups:
+      base-images:
+        patterns: ["*"]

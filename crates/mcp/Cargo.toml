@@ -1,0 +1,25 @@
+[package]
+name = "slack-mcp"
+description = "The read surface: eleven MCP tools over the archive"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+slack-core.workspace = true
+axum = "0.8.9"
+chrono.workspace = true
+regex.workspace = true
+# Pinned exactly, not to a range: rmcp went v1 -> v2 -> v3 inside a year and the
+# streamable-HTTP server API moved with it. A caret range would let a future `cargo
+# update` change the transport under a deployment nobody is watching.
+rmcp = { version = "=3.9.0", features = ["server", "macros", "transport-streamable-http-server"] }
+schemars = "1.2.3"
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true

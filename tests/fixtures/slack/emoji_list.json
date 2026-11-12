@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "emoji": {
+    "shipit": "https://emoji.slack-edge.com/T0001/shipit/abc.png",
+    "yolo": "alias:shipit"
+  }
+}

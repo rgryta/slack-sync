@@ -1,0 +1,12 @@
+-- Keep the name Slack actually shows.
+--
+-- `real_name` is the legal name on the profile; the Slack client renders
+-- `profile.display_name` whenever it is set. Storing only `real_name` meant the
+-- archive named people in a way no one in the workspace would recognise — a user
+-- known to everyone as "Sandy Ganoti" was filed as "Kyriaki Aikaterini Ganoti", and
+-- a search for the name a human would type matched nothing.
+--
+-- No backfill: `users.list` is refetched in full on every discovery pass, so the
+-- next pass fills this column for the whole directory. There is also no predicate
+-- for "affected rows" here — display_name has never been in the database.
+ALTER TABLE workspace_user ADD COLUMN IF NOT EXISTS display_name text;

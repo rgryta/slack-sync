@@ -1,0 +1,28 @@
+# The ingester: the loops, and the binary that runs them.
+#
+# Its own package rather than a second `[[bin]]` on the root one, because the root
+# package carries `slack-mcp` and must not gain a `slack-client` dependency — that
+# missing edge is what makes the MCP process unable to reach Slack, and
+# `tests/archive/isolation.rs` asserts it.
+[package]
+name = "slack-ingest"
+description = "The Slack ingester: poll, backfill, and the scope filter"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+slack-client.workspace = true
+slack-core.workspace = true
+chrono.workspace = true
+# Already in the tree through sqlx. `CRC_32_ISO_HDLC` is `zlib.crc32`, which is what
+# the poll cadence's slots are keyed on; see `poll::slot_of`.
+crc = "3.4.0"
+serde_json.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["time"] }
+tracing.workspace = true
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
