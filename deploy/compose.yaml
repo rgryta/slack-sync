@@ -2,12 +2,15 @@
 # two commands, two database roles — and leaves the parts that are yours to you: the
 # registry, the network, where Postgres lives.
 #
+# The image is published, so this runs as-is once `.env` exists: pin a version rather
+# than `latest` if you would rather decide when it moves.
+#
 # Copy it, set the names and the DSN hosts, and put the secrets in `.env` beside it
 # (see `.env.example`). Roles and grants: `deploy/provision-slack-db.sql`.
 
 services:
   slack-mcp:
-    image: slack-sync:latest
+    image: ghcr.io/rgryta/slack-sync:latest
     container_name: slack-mcp
     restart: unless-stopped
     # The image already runs as a non-root user and has no shell. Dropping capabilities
@@ -63,7 +66,7 @@ services:
   # instead: it reports each account's last poll, last auth error and backfill progress,
   # which is the question a healthcheck would be trying to answer.
   slack-ingest:
-    image: slack-sync:latest
+    image: ghcr.io/rgryta/slack-sync:latest
     container_name: slack-ingest
     restart: unless-stopped
     cap_drop:
