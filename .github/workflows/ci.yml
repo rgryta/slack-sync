@@ -23,6 +23,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
+          # The image is built for musl and linked statically; see deploy/Dockerfile.
+          targets: x86_64-unknown-linux-musl
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq musl-tools
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
@@ -36,4 +39,25 @@ jobs:
       # and passed, while the Dockerfile's filtered `--bin slack-mcp --bin slack-ingest`
       # could not resolve the second binary at all, because `--bin` searches only the
       # default-run package. A green CI run said nothing about the image.
-      - run: cargo build --release --workspace --bins
+      #
+      # `cargo test` above runs on the host target on purpose: what is under test is the
+      # behaviour, not the linkage, and the test binaries need the host's Docker socket.
+      - run: cargo build --release --workspace --bins --target x86_64-unknown-linux-musl
+      # The image is `FROM scratch` and carries no certificate store, so a release binary
+      # must never reach for the system one. `bollard` (testcontainers' Docker client)
+      # does pull `rustls-native-certs`, which is harmless while it stays a dev
+      # dependency — `-e normal` is what draws that line. If this ever fails, either keep
+      # the trust store bundled or move the base to distroless/static, which has one;
+      # the symptom otherwise is every Slack call failing at runtime and nothing before
+      # it noticing.
+      - name: No release binary may need a system trust store
+        run: |
+          found=$(cargo tree -e normal --workspace --prefix none \
+                    --target x86_64-unknown-linux-musl 2>/dev/null \
+                  | awk '{print $1}' | sort -u \
+                  | grep -xE 'rustls-native-certs|native-tls|openssl-sys' || true)
+          if [ -n "$found" ]; then
+            echo "::error::release graph links a system trust store: $found" >&2
+            exit 1
+          fi
+          echo "trust store is bundled (webpki-roots); scratch base is safe"
