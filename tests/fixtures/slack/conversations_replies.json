@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "messages": [
+    {
+      "type": "message",
+      "user": "U0TED",
+      "text": "have a look at the deploy <@U0ME>",
+      "ts": "1723640400.001200",
+      "thread_ts": "1723640400.001200",
+      "reply_count": 1
+    },
+    {
+      "type": "message",
+      "user": "U0ME",
+      "text": "on it",
+      "ts": "1723640460.000100",
+      "thread_ts": "1723640400.001200"
+    }
+  ],
+  "has_more": false,
+  "response_metadata": { "next_cursor": "" }
+}

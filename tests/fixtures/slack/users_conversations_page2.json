@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "channels": [
+    {
+      "id": "G0PLANS",
+      "name": "mpdm-me--ted--ann-1",
+      "is_mpim": true,
+      "is_group": true,
+      "is_private": true,
+      "context_team_id": "T0001"
+    },
+    {
+      "id": "C0PARTNER",
+      "name": "acme-partner",
+      "is_channel": true,
+      "is_private": false,
+      "is_member": true,
+      "is_ext_shared": true,
+      "context_team_id": "T0001",
+      "shared_team_ids": ["T0001", "T0EXT"],
+      "connected_team_ids": ["T0EXT"]
+    }
+  ],
+  "response_metadata": { "next_cursor": "" }
+}

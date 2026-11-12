@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "team": {
+    "id": "T0001",
+    "name": "Acme",
+    "domain": "acme",
+    "email_domain": "acme.com"
+  }
+}

@@ -1,0 +1,89 @@
+# An example, not a deployment. It shows the shape the two services expect — one image,
+# two commands, two database roles — and leaves the parts that are yours to you: the
+# registry, the network, where Postgres lives.
+#
+# Copy it, set the names and the DSN hosts, and put the secrets in `.env` beside it
+# (see `.env.example`). Roles and grants: `deploy/provision-slack-db.sql`.
+
+services:
+  slack-mcp:
+    image: slack-sync:latest
+    container_name: slack-mcp
+    restart: unless-stopped
+    # The image already runs as a non-root user and has no shell. Dropping capabilities
+    # and new privileges costs nothing on top: neither binary needs either.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    env_file:
+      - .env
+    environment:
+      # The read role. It selects everything and writes only the two alias tables.
+      SLACK_MCP_DSN: postgresql://slack_mcp:${SLACK_MCP_DB_PASSWORD}@postgres:5432/slack
+      SLACK_MCP_HOST: 0.0.0.0
+      SLACK_MCP_PORT: "8000"
+      # rmcp's guard against DNS rebinding: the `Host` headers `/mcp` will answer. Set it
+      # to the name your MCP client addresses this container by — without a port, since
+      # SLACK_MCP_PORT above is already the one place the port is written down and a
+      # second copy would eventually disagree with it.
+      #
+      # Unset or blank falls back to loopback only, which fails closed in a way worth
+      # knowing about: every tool call returns 403 while /healthz keeps the container
+      # green, so the container looks healthy and answers nothing. The effective list is
+      # logged at startup for exactly this reason.
+      SLACK_MCP_ALLOWED_HOSTS: slack-mcp
+    command:
+      - slack-mcp
+    # The binary probes its own /healthz. It is the only thing that can: the image is
+    # distroless, so there is no shell and no interpreter to write a curl-shaped probe
+    # with. /healthz sits outside the SLACK_MCP_ALLOWED_HOSTS guard, so it needs no entry.
+    healthcheck:
+      test:
+        - CMD
+        - slack-mcp
+        - --health-check
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    # Measured at well under 10 MiB serving a 50,000-message archive, so this is slack
+    # rather than a target.
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # One ingester container per Slack account: each carries its own session credential and
+  # its own scope, so a dead token on one does not touch the other. Name them after the
+  # account (`slack-ingest-work`, `slack-ingest-side`) and give each its own SLACK_ACCOUNT.
+  #
+  # No healthcheck, deliberately. A healthy ingester spends most of its life asleep
+  # between polls, which no probe can tell from wedged. Ask the `slack-status` MCP tool
+  # instead: it reports each account's last poll, last auth error and backfill progress,
+  # which is the question a healthcheck would be trying to answer.
+  slack-ingest:
+    image: slack-sync:latest
+    container_name: slack-ingest
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    env_file:
+      - .env
+    environment:
+      SLACK_ACCOUNT: default
+      SLACK_XOXC: ${SLACK_XOXC}
+      SLACK_XOXD: ${SLACK_XOXD}
+      # The write role, which owns the schema and applies the migrations.
+      SLACK_DSN: postgresql://slack_ingest:${SLACK_INGEST_DB_PASSWORD}@postgres:5432/slack
+      # SLACK_SCOPE_CHANNELS belongs in `.env`: which channels you collect is yours, not
+      # this file's. Unset means DMs and group DMs only — a channel is only ever collected
+      # because it is named there. Adding one does not backfill it; see the README.
+    command:
+      - slack-ingest
+    deploy:
+      resources:
+        limits:
+          memory: 128M

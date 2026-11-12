@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "members": [
+    {
+      "id": "U0TED",
+      "team_id": "T0001",
+      "name": "ted",
+      "real_name": "Ted Lasso",
+      "is_bot": false,
+      "profile": { "real_name": "Ted Lasso", "display_name": "Coach Ted" }
+    },
+    {
+      "id": "B0BOT",
+      "team_id": "T0001",
+      "name": "deploybot",
+      "is_bot": true,
+      "profile": { "real_name": "Deploy Bot", "display_name": "" }
+    }
+  ],
+  "response_metadata": { "next_cursor": "" }
+}

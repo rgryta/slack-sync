@@ -1,0 +1,39 @@
+name: ci
+
+# Lint, test and build on every pull request. The Postgres tests start their own throwaway
+# container (testcontainers), which the hosted runner's Docker supports. Runs on a
+# GitHub-hosted runner on purpose: pull-request code, Dependabot's included, never touches the NAS.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      # The Postgres tests start their own testcontainer, which the hosted runner's
+      # Docker supports. No DATABASE_URL is set anywhere, deliberately: the queries are
+      # runtime-checked, so the build stays hermetic and nothing can be pointed at a
+      # real database.
+      - run: cargo test --workspace
+      # The same invocation `deploy/Dockerfile` uses, word for word, so the two cannot
+      # drift. They did once: CI built everything with a plain `cargo build --release`
+      # and passed, while the Dockerfile's filtered `--bin slack-mcp --bin slack-ingest`
+      # could not resolve the second binary at all, because `--bin` searches only the
+      # default-run package. A green CI run said nothing about the image.
+      - run: cargo build --release --workspace --bins
