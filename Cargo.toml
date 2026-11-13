@@ -11,7 +11,10 @@ resolver = "3"
 [workspace.package]
 version = "0.2.0"
 edition = "2024"
-rust-version = "1.85"
+# The toolchain the image builds with, which is always the latest stable. Cargo resolves
+# dependencies to what this claims, so an older number holds back releases (at 1.85 it held
+# back security fixes) and promises support for compilers nothing tests.
+rust-version = "1.100"
 license = "MIT"
 publish = false
 
