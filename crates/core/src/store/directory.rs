@@ -176,10 +176,10 @@ impl Directory {
         // A DM has no name. Without the counterpart it renders as `im:D09QVUDMLGM`,
         // which says nothing about who is on the other end - and there is no other
         // tool that will tell you.
-        if conversation.kind == ConversationType::Im {
-            if let Some(counterpart) = &conversation.counterpart_user_id {
-                return format!("DM with {}", self.user_name(account_id, counterpart));
-            }
+        if conversation.kind == ConversationType::Im
+            && let Some(counterpart) = &conversation.counterpart_user_id
+        {
+            return format!("DM with {}", self.user_name(account_id, counterpart));
         }
         format!("{}:{conversation_id}", conversation.kind)
     }
