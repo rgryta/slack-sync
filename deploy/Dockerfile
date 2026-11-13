@@ -9,10 +9,8 @@
 # image it runs in will not start. This one needs no more than GLIBC_2.34 and trixie
 # ships 2.41, so there is margin either way.
 #
-# 1.99 rather than the manifest's `rust-version = "1.85"`: sqlx 0.9 requires rustc
-# 1.94, so that is the real floor. A too-old toolchain fails here with the required
-# version named, which is a better error than anything a comment could say.
-FROM rust:1.99-slim-trixie@sha256:f6c4a35d21dbb3c89d7a8d056c193e94fc09037f2b58dd858b09c39a47dd02d7 AS rust
+# The latest stable Rust, matching the manifest's rust-version. Bump both together.
+FROM rust:1.100-slim-trixie@sha256:e9d95b74296f7126a83ae3d041aeaba1ff4c478f13abc5cc034fcf7c131c3d4a AS rust
 WORKDIR /build
 # No dependency pre-build stage. The usual trick needs stub sources for every workspace
 # member, kept in step with the members by hand, to save about two minutes on an image
