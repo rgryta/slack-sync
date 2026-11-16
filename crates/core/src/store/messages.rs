@@ -190,7 +190,30 @@ pub async fn get_thread(
     with_reactions(pool, messages).await
 }
 
-/// Full-text search over the persisted corpus.
+/// `$1` against a message: every word exactly, accents folded, or — for a plain query of
+/// three or more characters — every word within a typo or a different ending (pg_trgm
+/// word similarity over the folded text, which `message_fold_trgm_idx` indexes). Quoted
+/// phrases, `-exclusions` and `or` keep their strict meaning.
+macro_rules! text_match {
+    () => {
+        "(m.search @@ websearch_to_tsquery('simple_fold', $1)
+           OR (char_length(btrim($1)) >= 3 AND $1 !~* '\"|(^|\\s)-|\\sor\\s'
+               AND search_fold(m.text) %> (regexp_split_to_array(btrim(search_fold($1)), '\\s+'))[1]
+               AND search_fold(m.text) %> ALL (regexp_split_to_array(btrim(search_fold($1)), '\\s+'))))"
+    };
+}
+
+/// Exact hits above fuzzy ones, each ordered by how well it matched.
+macro_rules! text_rank {
+    () => {
+        "CASE WHEN m.search @@ websearch_to_tsquery('simple_fold', $1)
+              THEN 1::real + ts_rank_cd(m.search, websearch_to_tsquery('simple_fold', $1))
+              ELSE word_similarity(search_fold($1), search_fold(m.text)) END"
+    };
+}
+
+/// Full-text search over the persisted corpus: accent-insensitive, and forgiving of a
+/// typo or a different word ending (see `text_match!`).
 ///
 /// An empty query returns no hits rather than every message: `websearch_to_tsquery`
 /// yields an empty tsquery that matches nothing, and that is the honest answer to a
@@ -220,12 +243,16 @@ pub async fn search_messages(
         "SELECT ",
         message_columns!(),
         ",
-               ts_rank_cd(m.search, websearch_to_tsquery('simple', $1)) AS rank,
-               ts_headline('simple', m.text, websearch_to_tsquery('simple', $1),
+               ",
+        text_rank!(),
+        " AS rank,
+               ts_headline('simple_fold', m.text, websearch_to_tsquery('simple_fold', $1),
                            'MaxFragments=1,MaxWords=25,MinWords=8') AS snippet
           FROM message m
           JOIN conversation c ON c.account_id = m.account_id AND c.id = m.conversation_id
-         WHERE m.search @@ websearch_to_tsquery('simple', $1)
+         WHERE ",
+        text_match!(),
+        "
            AND ($2::text IS NULL OR m.account_id = $2)
            AND ($3::text IS NULL OR c.team_id = $3)
            AND ($4::text IS NULL OR m.conversation_id = $4)

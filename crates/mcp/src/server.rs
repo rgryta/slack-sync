@@ -246,7 +246,9 @@ impl SlackMcp {
 
     #[tool(
         name = "search",
-        description = "Full-text search the stored corpus. `author` accepts an alias or a raw \
+        description = "Full-text search the stored corpus. Ignores accents and forgives a typo \
+                       or a different word ending; a \"quoted phrase\" or -word stays exact. \
+                       `author` accepts an alias or a raw \
                        Slack user ID, and `after`/`before` (ISO 8601, a plain date is fine) narrow \
                        it to a period.",
         annotations(read_only_hint = true, open_world_hint = false)
