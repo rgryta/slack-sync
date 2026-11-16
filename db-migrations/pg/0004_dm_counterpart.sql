@@ -1,7 +1,7 @@
 -- Give a DM the person on the other end.
 --
 -- A DM has no name, so `conversation_label` could only ever render it as
--- `im:D09QVUDMLGM`. Slack's `users.conversations` carries the counterpart on every
+-- `im:D012AB3CD4E`. Slack's `users.conversations` carries the counterpart on every
 -- `im` entry; nothing was keeping it.
 ALTER TABLE conversation ADD COLUMN IF NOT EXISTS counterpart_user_id text;
 

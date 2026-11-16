@@ -173,7 +173,7 @@ impl Directory {
                 _ => name.to_owned(),
             };
         }
-        // A DM has no name. Without the counterpart it renders as `im:D09QVUDMLGM`,
+        // A DM has no name. Without the counterpart it renders as `im:D012AB3CD4E`,
         // which says nothing about who is on the other end - and there is no other
         // tool that will tell you.
         if conversation.kind == ConversationType::Im
@@ -386,8 +386,8 @@ mod tests {
 
     #[test]
     fn display_name_beats_real_name() {
-        // Preferring `real_name` filed a colleague everyone calls "Sandy Ganoti" under
-        // "Kyriaki Aikaterini Ganoti" — a name that appears nowhere the user can see.
+        // Preferring `real_name` filed a colleague everyone calls "Dora Lemoni" under
+        // "Theodora Anastasia Lemoni" — a name that appears nowhere the user can see.
         let mut directory = directory();
         directory.aliases.clear();
         assert_eq!(directory.user_name("work", "U0TED"), "Coach Ted");

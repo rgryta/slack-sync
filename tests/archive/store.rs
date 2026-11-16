@@ -597,11 +597,11 @@ db_test!(resolve_author_matches_a_name_on_screen, |f| {
         "work",
         "U1",
         Some("sg"),
-        Some("Kyriaki Aikaterini Ganoti"),
-        Some("Sandy Ganoti"),
+        Some("Theodora Anastasia Lemoni"),
+        Some("Dora Lemoni"),
     )
     .await;
-    for spelling in ["Sandy Ganoti", "sandy ganoti", "Kyriaki Aikaterini Ganoti"] {
+    for spelling in ["Dora Lemoni", "dora lemoni", "Theodora Anastasia Lemoni"] {
         assert_eq!(
             store::resolve_author(&f.pool, spelling)
                 .await
@@ -615,7 +615,7 @@ db_test!(resolve_author_matches_a_name_on_screen, |f| {
     }
     // Whole-string only: a first name must not silently stand in for everyone.
     assert!(
-        store::resolve_author(&f.pool, "Sandy")
+        store::resolve_author(&f.pool, "Dora")
             .await
             .unwrap()
             .is_empty()
@@ -625,13 +625,13 @@ db_test!(resolve_author_matches_a_name_on_screen, |f| {
 db_test!(resolve_author_ignores_diacritics_and_case, |f| {
     // People type Polish names without the accents, and sometimes the stored one lacks them.
     support::seed(&f.pool).await;
-    support::user(&f.pool, "work", "U1", None, Some("Michał Witkowski"), None).await;
+    support::user(&f.pool, "work", "U1", None, Some("Michał Zażółcki"), None).await;
     support::user(&f.pool, "work", "U2", None, None, Some("Michal")).await;
     support::user(&f.pool, "work", "U3", Some("Łukasz"), None, None).await;
     for (spelling, expected) in [
-        ("Michal Witkowski", "U1"),
-        ("michał witkowski", "U1"),
-        ("Michał Witkowski", "U1"),
+        ("Michal Zazolcki", "U1"),
+        ("michał zażółcki", "U1"),
+        ("Michał Zażółcki", "U1"),
         ("michał", "U2"),
         ("Michal", "U2"),
         ("ŁUKASZ", "U3"),
@@ -650,7 +650,7 @@ db_test!(resolve_author_ignores_diacritics_and_case, |f| {
         );
     }
     assert!(
-        store::resolve_author(&f.pool, "Michal Witkowsky")
+        store::resolve_author(&f.pool, "Michal Zazolcky")
             .await
             .unwrap()
             .is_empty()

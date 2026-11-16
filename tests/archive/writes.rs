@@ -542,7 +542,7 @@ db_test!(a_payload_without_a_display_name_does_not_erase_one, |f| {
         team_id: None,
         name: Some("sg".into()),
         real_name: None,
-        display_name: Some("Sandy Ganoti".into()),
+        display_name: Some("Dora Lemoni".into()),
         is_bot: false,
     };
     store::upsert_users(&f.pool, std::slice::from_ref(&user))
@@ -562,7 +562,7 @@ db_test!(a_payload_without_a_display_name_does_not_erase_one, |f| {
             .fetch_one(&f.pool)
             .await
             .unwrap();
-    assert_eq!(display_name.as_deref(), Some("Sandy Ganoti"));
+    assert_eq!(display_name.as_deref(), Some("Dora Lemoni"));
 });
 
 db_test!(upsert_emoji_is_idempotent, |f| {

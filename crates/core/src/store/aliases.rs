@@ -11,8 +11,8 @@ use crate::store::fold;
 /// An alias spanning two accounts returns both identities, which is what makes
 /// `author: "ted"` mean "Ted anywhere" rather than "Ted in one workspace". An
 /// unrecognised string is matched against the directory by name, because the name on
-/// screen is what a caller has to go on — being told "Sandy Ganoti wrote this" and
-/// then having `author: "Sandy Ganoti"` return nothing is a dead end with no next
+/// screen is what a caller has to go on — being told "Dora Lemoni wrote this" and
+/// then having `author: "Dora Lemoni"` return nothing is a dead end with no next
 /// move. Alias and name matches are whole-string, case- and accent-insensitive
 /// ("Michal" finds "Michał") rather than a substring, so they cannot quietly widen to
 /// everyone sharing a first name.
