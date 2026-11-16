@@ -4,6 +4,7 @@ use sqlx::Row;
 use sqlx::postgres::PgPool;
 
 use crate::models::{Alias, Identity};
+use crate::store::fold;
 
 /// Resolve an alias or a raw user ID to the identity set it names.
 ///
@@ -12,13 +13,17 @@ use crate::models::{Alias, Identity};
 /// unrecognised string is matched against the directory by name, because the name on
 /// screen is what a caller has to go on — being told "Sandy Ganoti wrote this" and
 /// then having `author: "Sandy Ganoti"` return nothing is a dead end with no next
-/// move. That match is whole-string and case-insensitive rather than a substring, so
-/// it cannot quietly widen to everyone sharing a first name.
+/// move. Alias and name matches are whole-string, case- and accent-insensitive
+/// ("Michal" finds "Michał") rather than a substring, so they cannot quietly widen to
+/// everyone sharing a first name.
 pub async fn resolve_author(pool: &PgPool, author: &str) -> Result<Vec<Identity>, sqlx::Error> {
-    let by_alias = sqlx::query_as::<_, Identity>(
-        "SELECT account_id, user_id FROM user_alias_member WHERE alias = $1",
-    )
-    .bind(author)
+    // Folding the column skips any index; the alias and user tables are small.
+    let by_alias = sqlx::query_as::<_, Identity>(concat!(
+        "SELECT account_id, user_id FROM user_alias_member WHERE ",
+        folded!("alias"),
+        " = $1"
+    ))
+    .bind(fold(author))
     .fetch_all(pool)
     .await?;
     if !by_alias.is_empty() {
@@ -33,29 +38,34 @@ pub async fn resolve_author(pool: &PgPool, author: &str) -> Result<Vec<Identity>
     if !by_id.is_empty() {
         return Ok(by_id);
     }
-    sqlx::query_as::<_, Identity>(
-        "
-        SELECT account_id, user_id FROM workspace_user
-         WHERE lower($1) IN (lower(display_name), lower(real_name), lower(name))
-         ORDER BY account_id, user_id
-        ",
-    )
-    .bind(author)
+    sqlx::query_as::<_, Identity>(concat!(
+        "SELECT account_id, user_id FROM workspace_user WHERE $1 IN (",
+        folded!("display_name"),
+        ", ",
+        folded!("real_name"),
+        ", ",
+        folded!("name"),
+        ") ORDER BY account_id, user_id"
+    ))
+    .bind(fold(author))
     .fetch_all(pool)
     .await
 }
 
+/// The `alias` filter is case- and accent-insensitive, like `resolve_author`.
 pub async fn list_aliases(pool: &PgPool, alias: Option<&str>) -> Result<Vec<Alias>, sqlx::Error> {
-    let rows = sqlx::query(
+    let rows = sqlx::query(concat!(
         "
         SELECT a.alias, a.note, m.account_id, m.user_id
           FROM user_alias a
           LEFT JOIN user_alias_member m ON m.alias = a.alias
-         WHERE ($1::text IS NULL OR a.alias = $1)
+         WHERE ($1::text IS NULL OR ",
+        folded!("a.alias"),
+        " = $1)
          ORDER BY a.alias, m.account_id, m.user_id
-        ",
-    )
-    .bind(alias)
+        "
+    ))
+    .bind(alias.map(fold))
     .fetch_all(pool)
     .await?;
 
