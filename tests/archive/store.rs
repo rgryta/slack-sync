@@ -220,7 +220,7 @@ db_test!(reads_attach_reactions, |f| {
 });
 
 db_test!(search_matches_a_non_english_token, |f| {
-    // The tsvector is `simple`, so a Polish word is matched as written. Under `english`
+    // The tsvector is `simple_fold`, so a Polish word is matched as written. Under `english`
     // stemming these tokens are mangled and the hit disappears silently, which for a
     // mixed-language corpus is a wrong answer that looks like an empty one.
     support::seed(&f.pool).await;
@@ -251,6 +251,43 @@ db_test!(search_matches_a_non_english_token, |f| {
     );
     assert!(hits[0].rank > 0.0);
     assert!(hits[0].snippet.contains("gęślą"), "{}", hits[0].snippet);
+});
+
+db_test!(search_forgives_accents_typos_and_endings, |f| {
+    support::seed(&f.pool).await;
+    let lines = [
+        ("1.0", "naprawa samochodu jutro"),
+        ("2.0", "Widziałem żółwia w zoo"),
+        ("3.0", "zjemy pierogi dziś?"),
+        ("4.0", "samochód stoi"),
+        ("5.0", "kto to był"),
+    ];
+    support::messages(
+        &f.pool,
+        lines
+            .iter()
+            .enumerate()
+            .map(|(i, &(ts, text))| Msg {
+                ts,
+                text,
+                offset_seconds: i as i64,
+                ..Msg::default()
+            })
+            .collect(),
+    )
+    .await;
+    let found = |hits: Vec<slack_core::models::SearchHit>| {
+        hits.into_iter().map(|h| h.message.ts).collect::<Vec<_>>()
+    };
+    // Accents fold both ways, and an exact word outranks a near one.
+    assert_eq!(found(search(&f.pool, "samochod").await), ["4.0", "1.0"]);
+    assert_eq!(found(search(&f.pool, "zolw").await), ["2.0"]);
+    // A typo, and words far apart in either order.
+    assert_eq!(found(search(&f.pool, "pierogki").await), ["3.0"]);
+    assert_eq!(found(search(&f.pool, "jutro samochod").await), ["1.0"]);
+    // Same letters, different word: no match. A quoted phrase stays exact.
+    assert!(search(&f.pool, "kot").await.is_empty());
+    assert!(search(&f.pool, "\"pierogki\"").await.is_empty());
 });
 
 db_test!(search_filters, |f| {
