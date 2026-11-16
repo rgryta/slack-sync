@@ -622,6 +622,60 @@ db_test!(resolve_author_matches_a_name_on_screen, |f| {
     );
 });
 
+db_test!(resolve_author_ignores_diacritics_and_case, |f| {
+    // People type Polish names without the accents, and sometimes the stored one lacks them.
+    support::seed(&f.pool).await;
+    support::user(&f.pool, "work", "U1", None, Some("Michał Zażółcki"), None).await;
+    support::user(&f.pool, "work", "U2", None, None, Some("Michal")).await;
+    support::user(&f.pool, "work", "U3", Some("Łukasz"), None, None).await;
+    for (spelling, expected) in [
+        ("Michal Zazolcki", "U1"),
+        ("michał zażółcki", "U1"),
+        ("Michał Zażółcki", "U1"),
+        ("michał", "U2"),
+        ("Michal", "U2"),
+        ("ŁUKASZ", "U3"),
+        ("lukasz", "U3"),
+        ("Łukasz", "U3"),
+    ] {
+        assert_eq!(
+            store::resolve_author(&f.pool, spelling)
+                .await
+                .unwrap()
+                .iter()
+                .map(|i| i.user_id.as_str())
+                .collect::<Vec<_>>(),
+            [expected],
+            "{spelling}"
+        );
+    }
+    assert!(
+        store::resolve_author(&f.pool, "Michal Zazolcky")
+            .await
+            .unwrap()
+            .is_empty()
+    );
+});
+
+db_test!(aliases_match_without_diacritics, |f| {
+    support::seed(&f.pool).await;
+    let member = [Identity {
+        account_id: "work".to_owned(),
+        user_id: "U1".to_owned(),
+    }];
+    store::set_alias(&f.pool, "Zośka", &member, None)
+        .await
+        .unwrap();
+    for spelling in ["zoska", "ZOŚKA", "Zośka"] {
+        let resolved = store::resolve_author(&f.pool, spelling).await.unwrap();
+        assert_eq!(resolved.len(), 1, "{spelling}");
+        assert_eq!(resolved[0].user_id, "U1", "{spelling}");
+        let aliases = store::list_aliases(&f.pool, Some(spelling)).await.unwrap();
+        assert_eq!(aliases.len(), 1, "{spelling}");
+        assert_eq!(aliases[0].alias, "Zośka", "{spelling}");
+    }
+});
+
 db_test!(list_workspaces_counts_in_scope_conversations, |f| {
     support::seed(&f.pool).await;
     support::conversation(

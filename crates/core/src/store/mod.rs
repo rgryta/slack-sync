@@ -22,6 +22,48 @@
 //! direction or a filter has to vary, there are two static query constants rather than
 //! one formatted string.
 
+/// One-to-one accent table shared by the SQL and Rust sides of name matching, so that
+/// "Michal" finds "Michał" and the other way round. Lowercase only: both sides lower
+/// first. Macros rather than consts so `folded!` can splice them into static SQL.
+macro_rules! fold_from {
+    () => {
+        "ąćęłńóśźżáàâäãåéèêëěíìîïòôöõőúùûüůűýÿñňçčšžřďť"
+    };
+}
+macro_rules! fold_to {
+    () => {
+        "acelnoszzaaaaaaeeeeeiiiiooooouuuuuuyynnccszrdt"
+    };
+}
+const FOLD_FROM: &str = fold_from!();
+const FOLD_TO: &str = fold_to!();
+
+/// SQL folding a column to compare against [`fold`]ed input.
+macro_rules! folded {
+    ($column:literal) => {
+        concat!(
+            "translate(lower(",
+            $column,
+            "), '",
+            fold_from!(),
+            "', '",
+            fold_to!(),
+            "')"
+        )
+    };
+}
+
+/// Caller input folded the same way `folded!` folds a column.
+fn fold(text: &str) -> String {
+    text.to_lowercase()
+        .chars()
+        .map(|c| match FOLD_FROM.chars().position(|from| from == c) {
+            Some(i) => FOLD_TO.chars().nth(i).expect("tables are the same length"),
+            None => c,
+        })
+        .collect()
+}
+
 mod accounts;
 mod aliases;
 mod conversations;
@@ -75,4 +117,21 @@ where
     T: std::str::FromStr<Err = UnknownVariant>,
 {
     value.map(parse_column).transpose()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fold_agrees_with_the_sql_table() {
+        assert_eq!(FOLD_FROM.chars().count(), FOLD_TO.chars().count());
+        assert_eq!(fold(FOLD_FROM), FOLD_TO);
+        assert_eq!(fold(&FOLD_FROM.to_uppercase()), FOLD_TO);
+        assert_eq!(fold("ŁUKASZ Michał"), "lukasz michal");
+        assert_eq!(
+            folded!("c"),
+            format!("translate(lower(c), '{FOLD_FROM}', '{FOLD_TO}')")
+        );
+    }
 }
