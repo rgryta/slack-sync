@@ -364,6 +364,36 @@ db_test!(search_by_raw_user_id_still_works, |f| {
     assert!(!body.contains("deploy over here"), "{body}");
 });
 
+db_test!(search_author_name_ignores_diacritics, |f| {
+    seeded(&f.pool).await;
+    seed_messages(&f.pool).await;
+    support::user(
+        &f.pool,
+        "work",
+        "U0TED",
+        Some("ted"),
+        Some("Tèd Łasso"),
+        None,
+    )
+    .await;
+    let body = tools::search(
+        &f.pool,
+        "deploy",
+        None,
+        None,
+        None,
+        Some("ted lasso"),
+        None,
+        None,
+        None,
+        None,
+    )
+    .await
+    .unwrap();
+    assert!(body.contains("deploy the pipeline"), "{body}");
+    assert!(!body.contains("deploy over here"), "{body}");
+});
+
 db_test!(an_unknown_author_says_so, |f| {
     seeded(&f.pool).await;
     let body = tools::search(
