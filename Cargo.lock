@@ -2275,7 +2275,7 @@ checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
 
 [[package]]
 name = "slack-client"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "percent-encoding",
@@ -2289,7 +2289,7 @@ dependencies = [
 
 [[package]]
 name = "slack-core"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "serde",
@@ -2300,7 +2300,7 @@ dependencies = [
 
 [[package]]
 name = "slack-ingest"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "crc",
@@ -2316,7 +2316,7 @@ dependencies = [
 
 [[package]]
 name = "slack-mcp"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "axum",
  "chrono",
@@ -2334,7 +2334,7 @@ dependencies = [
 
 [[package]]
 name = "slack-sync"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "axum",
  "chrono",
