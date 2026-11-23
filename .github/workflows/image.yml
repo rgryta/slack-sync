@@ -1,0 +1,104 @@
+name: image
+
+# Started by tag.yml on a version bump, or by hand. Wired the same way
+# the-act-of-complexio's is: a GitHub-hosted build of the version tag, pushed to ghcr as
+# X.Y.Z and latest, then a GitHub release with a changelog.
+#
+# This repository is public, so Actions minutes and package storage are both free. That is
+# what makes a hosted build worth having here: the image is ~42 MB and builds in minutes,
+# where the Playwright-based siblings are ~2.85 GB and would need a paid plan.
+#
+# Manual release, from main: gh workflow run image.yml --ref main -f tag=vX.Y.Z
+# It always runs on main because GitHub caches are ref-scoped: a run on a tag ref could only
+# read main's cache and would save its own where no later release can see it.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Version tag to build and release (vX.Y.Z)
+        required: true
+        type: string
+
+concurrency:
+  group: image-${{ inputs.tag }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main' && startsWith(inputs.tag, 'v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+      - id: sha
+        run: echo "short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          # Labels take the sha of the checked-out tag, not main's head.
+          context: git
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ inputs.tag }}
+            type=raw,value=latest
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deploy/Dockerfile
+          build-args: GIT_SHA=${{ steps.sha.outputs.short }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          fetch-depth: 0
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          prev=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)
+          {
+            echo "# Changelog"
+            echo
+            if [ -z "$prev" ]; then
+              echo "Initial release."
+            else
+              git log "$prev..$TAG" --no-merges \
+                --pretty=format:"- [[%h]](https://github.com/${{ github.repository }}/commit/%H) %s (%an)%n"
+            fi
+            echo
+            echo "Image: \`ghcr.io/${{ github.repository }}:${TAG#v}\`"
+          } > notes.md
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md
+
+  # Only the newest image is kept; untagged layers of older ones go with it.
+  prune:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - uses: dataaxiom/ghcr-cleanup-action@v1.2.2
+        with:
+          keep-n-tagged: 1
+          delete-untagged: true

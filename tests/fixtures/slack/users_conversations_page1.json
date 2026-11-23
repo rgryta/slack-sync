@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "channels": [
+    {
+      "id": "C0GENERAL",
+      "name": "general",
+      "name_normalized": "general",
+      "is_channel": true,
+      "is_private": false,
+      "is_member": true,
+      "context_team_id": "T0001",
+      "shared_team_ids": ["T0001"]
+    },
+    {
+      "id": "D0TED",
+      "is_im": true,
+      "user": "U0TED",
+      "context_team_id": "T0001"
+    }
+  ],
+  "response_metadata": { "next_cursor": "dXNlcjpVMDYxTkZUVDI=" }
+}
